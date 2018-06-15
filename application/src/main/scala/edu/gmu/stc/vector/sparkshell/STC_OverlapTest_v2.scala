@@ -4,6 +4,7 @@ import java.nio.file.{Files, Paths}
 
 import edu.gmu.stc.config.ConfigParameter
 import edu.gmu.stc.vector.operation.OperationUtil
+import edu.gmu.stc.vector.operation.OperationUtil.updateHadoopConfig
 import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import edu.gmu.stc.vector.sparkshell.STC_OverlapTest_V1.{logError, logInfo}
@@ -13,6 +14,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 import org.datasyslab.geospark.enums.{GridType, IndexType}
 import org.apache.hadoop.fs.Path
+
 import scala.reflect.io.{Directory, File}
 
 /**
@@ -46,7 +48,7 @@ object STC_OverlapTest_v2 extends Logging{
 
     val configFilePath = args(0)   //"/Users/feihu/Documents/GitHub/GeoSpark/config/conf.xml"
     val hConf = new Configuration()
-    hConf.addResource(new Path(configFilePath))
+    updateHadoopConfig(hConf, configFilePath)
     sc.hadoopConfiguration.addResource(hConf)
 
     val tableNames = hConf.get(ConfigParameter.SHAPEFILE_INDEX_TABLES).split(",").map(s => s.toLowerCase().trim)

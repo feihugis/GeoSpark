@@ -2,6 +2,7 @@ package edu.gmu.stc.vector.sparkshell
 
 import edu.gmu.stc.config.ConfigParameter
 import edu.gmu.stc.vector.operation.OperationUtil
+import edu.gmu.stc.vector.operation.OperationUtil.updateHadoopConfig
 import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import org.apache.hadoop.conf.Configuration
@@ -43,7 +44,7 @@ object STC_OverlapTest_v3 extends Logging{
 
     val configFilePath = args(0)   //"/Users/feihu/Documents/GitHub/GeoSpark/config/conf.xml"
     val hConf = new Configuration()
-    hConf.addResource(new Path(configFilePath))
+    updateHadoopConfig(hConf, configFilePath)
     sc.hadoopConfiguration.addResource(hConf)
 
     val tableNames = hConf.get(ConfigParameter.SHAPEFILE_INDEX_TABLES).split(",").map(s => s.toLowerCase().trim)

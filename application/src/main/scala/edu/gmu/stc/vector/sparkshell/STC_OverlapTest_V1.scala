@@ -12,6 +12,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 import org.datasyslab.geospark.enums.{GridType, IndexType}
+import edu.gmu.stc.vector.operation.OperationUtil._
 
 /**
   * Created by Fei Hu on 1/29/18.
@@ -44,7 +45,8 @@ object STC_OverlapTest_V1 extends Logging{
 
     val configFilePath = args(0)
     val hConf = new Configuration()
-    hConf.addResource(new Path(configFilePath))
+    updateHadoopConfig(hConf, configFilePath)
+
     sc.hadoopConfiguration.addResource(hConf)
 
     val tableNames = hConf.get(ConfigParameter.SHAPEFILE_INDEX_TABLES).split(",").map(s => s.toLowerCase().trim)
