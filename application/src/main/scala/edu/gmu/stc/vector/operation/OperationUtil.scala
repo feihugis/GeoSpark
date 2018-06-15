@@ -104,6 +104,12 @@ object OperationUtil {
     val url = MapUtil.publishWMS(shpFolder, cfgPath)
     url
   }
+
+  def updateHadoopConfig(hConf: Configuration, newConfPath: String): Unit = {
+    val fs = FileSystem.get(hConf)
+    val inputStream = fs.open(new Path(newConfPath))
+    hConf.addResource(inputStream)
+  }
   
   def main(args: Array[String]): Unit = {
     //println(OperationUtil.publishWMS("/home/yun/test","/home/yun/GeoSpark/config/conf_dc.xml"))
