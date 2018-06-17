@@ -6,12 +6,14 @@ import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import edu.gmu.stc.vector.sparkshell.STC_OverlapTest_v3.{logError, logInfo}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{FileSystem, LocatedFileStatus, Path, RemoteIterator}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.internal.Logging
 import org.datasyslab.geospark.enums.{GridType, IndexType}
 import edu.gmu.stc.vector.operation.OperationUtil._
 import org.apache.commons.io.FilenameUtils
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
+
 
 /**
   * Created by Fei Hu.
@@ -20,8 +22,8 @@ object Multilayer_Overlap_v1 extends Logging{
   def main(args: Array[String]): Unit = {
 
     if (args.length != 8) {
-      logError("You input "+ args.length + "arguments: " + args.mkString(" ") + ", but it requires 5 arguments: " +
-        "\n \t 1)configFilePath: this file path for the configuration file path" +
+      logError("You input "+ args.length + "arguments: " + args.mkString(" ") + ", but it requires 8 arguments: " +
+        "\n \t 1) configFilePath: this file path for the configuration file path" +
         "\n \t 2) numPartition: the number of partitions" +
         "\n \t 3) gridType: the type of the partition, e.g. EQUALGRID, HILBERT, RTREE, VORONOI, QUADTREE, KDBTREE" +
         "\n \t 4) indexType: the index type for each partition, e.g. QUADTREE, RTREE" +
@@ -32,8 +34,6 @@ object Multilayer_Overlap_v1 extends Logging{
 
       return
     }
-
-    val t = System.currentTimeMillis()
 
     // Initialize the Spark job context
     val sparkConf = new SparkConf()
@@ -64,13 +64,18 @@ object Multilayer_Overlap_v1 extends Logging{
 
     sc.hadoopConfiguration.addResource(hConf)
 
-    val overlayerNames = List(FileSystem.get(sc.hadoopConfiguration)
-      .listFiles(new Path(overlayDir), true))
-      .filter(file => file.toString.endsWith(".shp"))
-      .map(file => FilenameUtils.getBaseName(file.toString))
+    val overlayerNames = scala.collection.mutable.ArrayBuffer.empty[String]
 
+    val overlayFileStatuses : RemoteIterator[LocatedFileStatus] = FileSystem.get(sc.hadoopConfiguration)
+      .listFiles(new Path(overlayDir), true)
 
-    val tableNames = hConf.get(ConfigParameter.SHAPEFILE_INDEX_TABLES).split(",").map(s => s.toLowerCase().trim)
+    while (overlayFileStatuses.hasNext) {
+      val filepath = overlayFileStatuses.next().getPath.toString
+      if (filepath.endsWith(".shp")) {
+        val filename = FilenameUtils.getBaseName(filepath)
+        overlayerNames += filename
+      }
+    }
 
     val minX = -180
     val minY = -180
@@ -79,27 +84,12 @@ object Multilayer_Overlap_v1 extends Logging{
 
 
     val shapeFileMetaRDD1 = new ShapeFileMetaRDD(sc, hConf)
-    //val table1 = tableNames(0)
     shapeFileMetaRDD1.initializeShapeFileMetaRDDAndPartitioner(sc, baselayerName, gridType, partitionNum, minX, minY, maxX, maxY)
     val geometryRDD1 = new GeometryRDD
     geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = true)
     geometryRDD1.partition(shapeFileMetaRDD1.getPartitioner)
     geometryRDD1.indexPartition(indexType)
     geometryRDD1.cache()
-
-    println("*************Counting GeometryRDD1 Time: " + OperationUtil.show_timing(geometryRDD1.getGeometryRDD.count()))
-
-    val partitionNum1 = geometryRDD1.getGeometryRDD.mapPartitionsWithIndex({
-      case (index, itor) => {
-        List((index, itor.size)).toIterator
-      }
-    }).collect()
-
-    println("********geometryRDD1*************\n")
-    partitionNum1.foreach(println)
-    println("********geometryRDD1*************\n")
-    println("******geometryRDD1****************" + geometryRDD1.getGeometryRDD.count())
-
 
     overlayerNames.map(overlayer => {
       val shapeFileMetaRDD2 = new ShapeFileMetaRDD(sc, hConf)
