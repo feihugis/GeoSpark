@@ -272,10 +272,11 @@ public class ShapeFileMeta extends Geometry implements Serializable {
   public static String getSQLForOverlappedRows(String tableName, double minX, double minY, double maxX, double maxY) {
 
     //TODO: the typeID is hardcoded into 5
-    String sql = String.format("FROM %s WHERE (%s < minX OR %s > maxX OR %s < minY OR %s > maxY) = FALSE AND typeID = 5",
+    /*String sql = String.format("FROM %s WHERE (%s < minX OR %s > maxX OR %s < minY OR %s > maxY) = FALSE AND typeID = 5",
                                tableName,
                                String.valueOf(maxX), String.valueOf(minX),
-                               String.valueOf(maxY), String.valueOf(minY)).toLowerCase();
+                               String.valueOf(maxY), String.valueOf(minY)).toLowerCase();*/
+    String sql = String.format("FROM %s", tableName).toLowerCase();
     LOG.info("SQL for querying overlapped rows: " + sql);
     return sql;
   }
