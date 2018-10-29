@@ -44,6 +44,7 @@ object STC_BuildIndexTest extends Logging{
 
     val shapeFileMetaRDD = new ShapeFileMetaRDD(sc, hConf)
     shapeFileMetaRDD.initializeShapeFileMetaRDD(sc, hConf)
-    shapeFileMetaRDD.saveShapeFileMetaToDB()
+    //shapeFileMetaRDD.saveShapeFileMetaToDB()
+    shapeFileMetaRDD.saveShapeFileMetaToParquet(sc)
   }
 }

@@ -16,6 +16,12 @@ public class ConfigParameter {
   //HDFS
   public static final String INPUT_DIR_PATH = "mapred.input.dir";
   public static final String SHAPEFILE_INDEX_TABLES = "shapefile.index.tablenames";
+  public static final String SHP_LAYER_NAMES = "shapefile.layer.names";
+
+  //Spark
+  public static final String EXECUTORS_CORE_NUMBER = "executors.core.number";
+  public static final String RDD_SAMPLING_FRACTION = "rdd.sampling.fraction";
+  public static final String PARQUET_INDEX_DIRS = "parquet.index.dirs";
 
   //Geoserver
   public static final String GEOSERVER_HOST_IP = "geoserver.host.ip";
