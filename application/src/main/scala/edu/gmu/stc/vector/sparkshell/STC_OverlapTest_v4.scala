@@ -6,7 +6,6 @@ import edu.gmu.stc.vector.operation.OperationUtil.updateHadoopConfig
 import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.spark.internal.Logging
 import org.apache.spark.{SparkConf, SparkContext}
 import org.datasyslab.geospark.enums.{GridType, IndexType}
@@ -14,7 +13,7 @@ import org.datasyslab.geospark.enums.{GridType, IndexType}
 /**
   * Created by Fei Hu.
   */
-object STC_OverlapTest_v3 extends Logging{
+object STC_OverlapTest_v4 extends Logging{
   def main(args: Array[String]): Unit = {
 
     if (args.length != 6) {
@@ -47,7 +46,7 @@ object STC_OverlapTest_v3 extends Logging{
     updateHadoopConfig(hConf, configFilePath)
     sc.hadoopConfiguration.addResource(hConf)
 
-    val tableNames = hConf.get(ConfigParameter.SHAPEFILE_INDEX_TABLES).split(",").map(s => s.toLowerCase().trim)
+    val parquetIndexDirs = hConf.get(ConfigParameter.PARQUET_INDEX_DIRS).split(",").map(s => s.trim)
 
     val partitionNum = args(1).toInt  //24
     val minX = -180
@@ -59,8 +58,10 @@ object STC_OverlapTest_v3 extends Logging{
     val indexType = IndexType.getIndexType(args(3))  //RTREE, QUADTREE
 
     val shapeFileMetaRDD1 = new ShapeFileMetaRDD(sc, hConf)
-    val table1 = tableNames(0)
-    shapeFileMetaRDD1.initializeShapeFileMetaRDDAndPartitioner(sc, table1, gridType, partitionNum, minX, minY, maxX, maxY)
+    val table1 = parquetIndexDirs(0)
+    shapeFileMetaRDD1.initializeShapeFileMetaRDDFromParquetAndPartitioner(
+      sc, table1, gridType, partitionNum, minX, minY, maxX, maxY)
+
     val geometryRDD1 = new GeometryRDD
     geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = true)
     geometryRDD1.partition(shapeFileMetaRDD1.getPartitioner)
@@ -81,9 +82,9 @@ object STC_OverlapTest_v3 extends Logging{
     println("******geometryRDD1****************" + geometryRDD1.getGeometryRDD.count())
 
     val shapeFileMetaRDD2 = new ShapeFileMetaRDD(sc, hConf)
-    val table2 = tableNames(1)
-    shapeFileMetaRDD2.initializeShapeFileMetaRDDWithoutPartition(sc, table2,
-      partitionNum, minX, minY, maxX, maxY)
+    val table2 = parquetIndexDirs(1)
+    shapeFileMetaRDD2.initializeShapeFileMetaRDDFromParquetWithoutPartition(
+      sc, table2, partitionNum, minX, minY, maxX, maxY)
 
     val geometryRDD2 = new GeometryRDD
     geometryRDD2.initialize(shapeFileMetaRDD2, hasAttribute = true)
