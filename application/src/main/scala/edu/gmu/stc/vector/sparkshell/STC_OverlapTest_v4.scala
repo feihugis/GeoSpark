@@ -63,7 +63,7 @@ object STC_OverlapTest_v4 extends Logging{
       sc, table1, gridType, partitionNum, minX, minY, maxX, maxY)
 
     val geometryRDD1 = new GeometryRDD
-    geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = true)
+    geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = false)
     geometryRDD1.partition(shapeFileMetaRDD1.getPartitioner)
     geometryRDD1.indexPartition(indexType)
     geometryRDD1.cache()
@@ -74,7 +74,7 @@ object STC_OverlapTest_v4 extends Logging{
       sc, table2, partitionNum, minX, minY, maxX, maxY)
 
     val geometryRDD2 = new GeometryRDD
-    geometryRDD2.initialize(shapeFileMetaRDD2, hasAttribute = true)
+    geometryRDD2.initialize(shapeFileMetaRDD2, hasAttribute = false)
     geometryRDD2.partition(shapeFileMetaRDD1.getPartitioner)
     geometryRDD2.cache()
 
