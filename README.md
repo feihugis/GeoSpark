@@ -30,3 +30,58 @@ using GeoSpark.
     - Multiple-layer overlay: 
         - Client mode `~/spark-2.3.0-bin-hadoop2.6/bin/spark-shell --master yarn --deploy-mode client --num-executors 10 --driver-memory 12g --executor-memory 10g --executor-cores 12 --class edu.gmu.stc.vector.sparkshell.Multilayer_Overlap_v1 --jars application/target/geospark-application-1.1.0-SNAPSHOT.jar /osm/config/conf_osm.xml 30 KDBTREE QUADTREE /multiOverlay_test/ epsg:4326 va_gis_osm_landuse_a_free_1 /osm/virginia-latest-free`
         - Yarn mode `~/spark-2.3.0-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --num-executors 10 --driver-memory 12g --executor-memory 10g --executor-cores 12 --class edu.gmu.stc.vector.sparkshell.Multilayer_Overlap_v1 application/target/geospark-application-1.1.0-SNAPSHOT.jar /osm/config/conf_osm.xml 30 KDBTREE QUADTREE /multiOverlay_test/ epsg:4326 va_gis_osm_landuse_a_free_1 /osm/virginia-latest-free` 
+ 
+ ---
+ ### Parquet
+ 1. Building index:
+ ```
+ $ /opt/cloudera/parcels/SPARK2-2.1.0.cloudera1-1.cdh5.7.0.p0.120904/lib/spark2/bin/spark-shell \
+ --master yarn \
+ --deploy-mode client \
+ --num-executors 5 \
+ --driver-memory 12g \
+ --executor-memory 10g \
+ --executor-cores 24 \
+ --class edu.gmu.stc.vector.sparkshell.STC_BuildIndexTest \
+ --jars /home/fei/GeoSpark/application/target/geospark-application-1.1.0-SNAPSHOT.jar \
+ BuildIndex \
+ /home/fei/GeoSpark/config/conf_ma_cluster.xml
+ ```
+ 
+ 2. Run STCSPark overlap test (Note: the config xml file need to be put on HDFS):
+ ```
+ $ /opt/cloudera/parcels/SPARK2-2.1.0.cloudera1-1.cdh5.7.0.p0.120904/lib/spark2/bin/spark-shell \
+ --master yarn \
+ --deploy-mode client \
+ --num-executors 5 \
+ --driver-memory 12g \
+ --executor-memory 10g \
+ --executor-cores 24 \
+ --class edu.gmu.stc.vector.sparkshell.STC_OverlapTest_v4 \
+ --jars /home/fei/GeoSpark/application/target/geospark-application-1.1.0-SNAPSHOT.jar \
+  /user/root/geospark/config/conf_ma_cluster.xml \
+  120 \
+  KDBTREE \
+  QUADTREE \
+  /user/root/test/test.geojson \
+  epsg:4326
+ ```
+ 
+ 3. Run GeoSpark Overlap:
+ ```
+ $ /opt/cloudera/parcels/SPARK2-2.1.0.cloudera1-1.cdh5.7.0.p0.120904/lib/spark2/bin/spark-shell \
+ --master yarn \
+ --deploy-mode client \
+ --num-executors 5 \
+ --driver-memory 12g \
+ --executor-memory 10g \
+ --executor-cores 24 \
+ --class edu.gmu.stc.vector.sparkshell.GeoSpark_OverlapTest \
+ --jars /home/fei/GeoSpark/application/target/geospark-application-1.1.0-SNAPSHOT.jar \
+ /user/root/MA_test/ \
+ MA_gis_osm_buildings \
+ MA_gis_osm_landuse \
+ 120 \
+ KDBTREE \
+ QUADTREE
+ ```
