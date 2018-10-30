@@ -274,7 +274,7 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
     for (layer <- queried_layers) {
       val filtered_rdd = tupleShapeFileMetaRDD
         .filter(meta => meta._11.contains(layer))
-        .sortBy(meta => meta._3)
+        .sortBy(meta => meta._2) //sort by the shp offset
         .repartition(executors_core_numbers)
 
       val parquet_dir_path = filtered_rdd.first()._11 + ".index.parquet"
@@ -309,6 +309,7 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
         row(7).asInstanceOf[java.lang.Double],
         row(8).asInstanceOf[java.lang.Double],
         row(9).asInstanceOf[java.lang.Double]))
+        .sortBy(metadata => metadata.getShp_offset)
   }
 
   def partition(partitioner: SpatialPartitioner): Unit = {
