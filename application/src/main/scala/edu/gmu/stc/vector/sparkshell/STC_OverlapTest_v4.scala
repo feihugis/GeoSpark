@@ -88,7 +88,7 @@ object STC_OverlapTest_v4 extends Logging{
       + geometryRDD2.getGeometryRDD.getNumPartitions)
 
     val startTime = System.currentTimeMillis()
-    //val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, metaPartitionNum)
+    //val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, geometryPartitionNum)
     val geometryRDD = geometryRDD1.intersect(geometryRDD2)
     geometryRDD.cache()
     val endTime = System.currentTimeMillis()
