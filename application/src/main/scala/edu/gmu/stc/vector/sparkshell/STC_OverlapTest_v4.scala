@@ -91,7 +91,7 @@ object STC_OverlapTest_v4 extends Logging{
     val endTime = System.currentTimeMillis()
     println("******** Intersection time: " + (endTime - startTime)/1000000)
 
-    val filePath = args(4)
+    /*val filePath = args(4)
     val crs = args(5)
     val fs = FileSystem.get(sc.hadoopConfiguration)
     if (fs.exists(new Path(filePath))) {
@@ -102,7 +102,7 @@ object STC_OverlapTest_v4 extends Logging{
     } else {
       geometryRDD.saveAsGeoJSON(filePath)
     }
-
+*/
     println("******** Number of intersected polygons: %d".format(geometryRDD.getGeometryRDD.count()))
 
     println("************** Total time: " + (System.currentTimeMillis() - t)/1000000)
