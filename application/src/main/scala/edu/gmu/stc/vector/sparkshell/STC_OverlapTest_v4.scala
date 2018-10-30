@@ -64,8 +64,6 @@ object STC_OverlapTest_v4 extends Logging{
     shapeFileMetaRDD1.initializeShapeFileMetaRDDFromParquetAndPartitioner(
       sc, table1, gridType, metaPartitionNum, minX, minY, maxX, maxY)
 
-    shapeFileMetaRDD1.getIndexedShapeFileMetaRDD.repartition(5)
-
     val geometryRDD1 = new GeometryRDD
     geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = false)
     geometryRDD1.partition(shapeFileMetaRDD1.getPartitioner)
