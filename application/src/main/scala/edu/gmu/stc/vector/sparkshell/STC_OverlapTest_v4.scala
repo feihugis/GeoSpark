@@ -18,7 +18,7 @@ object STC_OverlapTest_v4 extends Logging{
   def main(args: Array[String]): Unit = {
 
     if (args.length != 7) {
-      logError("You input "+ args.length + "arguments: " + args.mkString(" ") + ", but it requires 5 arguments: " +
+      logError("You input "+ args.length + " arguments: " + args.mkString(" ") + ", but it requires 7 arguments: " +
         "\n \t 1) configFilePath: File path for the configuration file path" +
         "\n \t 2) metaPartitionNum: Number of MetaRDD partitions" +
         "\n \t 3) gridType: Type of the partition, e.g. EQUALGRID, HILBERT, RTREE, VORONOI, QUADTREE, KDBTREE" +
