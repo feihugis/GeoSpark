@@ -6,6 +6,7 @@ import edu.gmu.stc.vector.operation.OperationUtil.updateHadoopConfig
 import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.internal.Logging
 import org.apache.spark.{SparkConf, SparkContext}
 import org.datasyslab.geospark.enums.{GridType, IndexType}
@@ -18,12 +19,13 @@ object STC_OverlapTest_v4 extends Logging{
 
     if (args.length != 6) {
       logError("You input "+ args.length + "arguments: " + args.mkString(" ") + ", but it requires 5 arguments: " +
-        "\n \t 1)configFilePath: this file path for the configuration file path" +
-        "\n \t 2) numPartition: the number of partitions" +
-        "\n \t 3) gridType: the type of the partition, e.g. EQUALGRID, HILBERT, RTREE, VORONOI, QUADTREE, KDBTREE" +
-        "\n \t 4) indexType: the index type for each partition, e.g. QUADTREE, RTREE" +
-        "\n \t 5) output file path: the file path for geojson output" +
-        "\n \t 6) crs: coordinate reference system")
+        "\n \t 1) configFilePath: File path for the configuration file path" +
+        "\n \t 2) metaPartitionNum: Number of MetaRDD partitions" +
+        "\n \t 3) gridType: Type of the partition, e.g. EQUALGRID, HILBERT, RTREE, VORONOI, QUADTREE, KDBTREE" +
+        "\n \t 4) indexType: Index type for each partition, e.g. QUADTREE, RTREE" +
+        "\n \t 5) output file path: File path for geojson output" +
+        "\n \t 6) crs: coordinate reference system" +
+        "\n \t 7) geometryPartitionNum: Number of GeomtryRDD paritions")
 
       return
     }
@@ -31,7 +33,7 @@ object STC_OverlapTest_v4 extends Logging{
     val t = System.currentTimeMillis()
 
     val sparkConf = new SparkConf()
-      .setAppName("%s_%s_%s_%s".format("STC_OverlapTest_v2", args(1), args(2), args(3)))
+      .setAppName("%s_%s_%s_%s".format("STC_OverlapTest_v4", args(1), args(2), args(3)))
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.kryo.registrator", classOf[VectorKryoRegistrator].getName)
 
@@ -41,14 +43,14 @@ object STC_OverlapTest_v4 extends Logging{
 
     val sc = new SparkContext(sparkConf)
 
-    val configFilePath = args(0)   //"/Users/feihu/Documents/GitHub/GeoSpark/config/conf.xml"
+    val configFilePath = args(0)
     val hConf = new Configuration()
     updateHadoopConfig(hConf, configFilePath)
     sc.hadoopConfiguration.addResource(hConf)
 
     val parquetIndexDirs = hConf.get(ConfigParameter.PARQUET_INDEX_DIRS).split(",").map(s => s.trim)
 
-    val partitionNum = args(1).toInt  //24
+    val metaPartitionNum = args(1).toInt
     val minX = -180
     val minY = -180
     val maxX = 180
@@ -60,7 +62,9 @@ object STC_OverlapTest_v4 extends Logging{
     val shapeFileMetaRDD1 = new ShapeFileMetaRDD(sc, hConf)
     val table1 = parquetIndexDirs(0)
     shapeFileMetaRDD1.initializeShapeFileMetaRDDFromParquetAndPartitioner(
-      sc, table1, gridType, partitionNum, minX, minY, maxX, maxY)
+      sc, table1, gridType, metaPartitionNum, minX, minY, maxX, maxY)
+
+    shapeFileMetaRDD1.getIndexedShapeFileMetaRDD.repartition(5)
 
     val geometryRDD1 = new GeometryRDD
     geometryRDD1.initialize(shapeFileMetaRDD1, hasAttribute = false)
@@ -71,7 +75,7 @@ object STC_OverlapTest_v4 extends Logging{
     val shapeFileMetaRDD2 = new ShapeFileMetaRDD(sc, hConf)
     val table2 = parquetIndexDirs(1)
     shapeFileMetaRDD2.initializeShapeFileMetaRDDFromParquetWithoutPartition(
-      sc, table2, partitionNum, minX, minY, maxX, maxY)
+      sc, table2, metaPartitionNum, minX, minY, maxX, maxY)
 
     val geometryRDD2 = new GeometryRDD
     geometryRDD2.initialize(shapeFileMetaRDD2, hasAttribute = false)
@@ -84,13 +88,18 @@ object STC_OverlapTest_v4 extends Logging{
       + geometryRDD2.getGeometryRDD.getNumPartitions)
 
     val startTime = System.currentTimeMillis()
-    val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, partitionNum)
+    //val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, metaPartitionNum)
+    val geometryRDD = geometryRDD1.intersect(geometryRDD2)
     geometryRDD.cache()
     val endTime = System.currentTimeMillis()
     println("******** Intersection time: " + (endTime - startTime)/1000000)
 
     val filePath = args(4)
     val crs = args(5)
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+    if (fs.exists(new Path(filePath))) {
+      fs.delete(new Path(filePath), true)
+    }
     if (filePath.endsWith("shp")) {
       geometryRDD.saveAsShapefile(filePath, crs)
     } else {
