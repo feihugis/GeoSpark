@@ -17,7 +17,7 @@ import org.datasyslab.geospark.enums.{GridType, IndexType}
 object STC_OverlapTest_v4 extends Logging{
   def main(args: Array[String]): Unit = {
 
-    if (args.length != 6) {
+    if (args.length != 7) {
       logError("You input "+ args.length + "arguments: " + args.mkString(" ") + ", but it requires 5 arguments: " +
         "\n \t 1) configFilePath: File path for the configuration file path" +
         "\n \t 2) metaPartitionNum: Number of MetaRDD partitions" +
@@ -90,7 +90,6 @@ object STC_OverlapTest_v4 extends Logging{
     val startTime = System.currentTimeMillis()
     //val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, geometryPartitionNum)
     val geometryRDD = geometryRDD1.intersect(geometryRDD2)
-    geometryRDD.cache()
     val endTime = System.currentTimeMillis()
     println("******** Intersection time: " + (endTime - startTime)/1000000)
 
