@@ -51,6 +51,8 @@ object STC_OverlapTest_v4 extends Logging{
     val parquetIndexDirs = hConf.get(ConfigParameter.PARQUET_INDEX_DIRS).split(",").map(s => s.trim)
 
     val metaPartitionNum = args(1).toInt
+    val geometryPartitionNum = args(6).toInt
+
     val minX = -180
     val minY = -180
     val maxX = 180
@@ -86,8 +88,8 @@ object STC_OverlapTest_v4 extends Logging{
       + geometryRDD2.getGeometryRDD.getNumPartitions)
 
     val startTime = System.currentTimeMillis()
-    //val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, geometryPartitionNum)
-    val geometryRDD = geometryRDD1.intersect(geometryRDD2)
+    val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, geometryPartitionNum)
+    //val geometryRDD = geometryRDD1.intersect(geometryRDD2)
     val endTime = System.currentTimeMillis()
     println("******** Intersection time: " + (endTime - startTime)/1000000)
 
