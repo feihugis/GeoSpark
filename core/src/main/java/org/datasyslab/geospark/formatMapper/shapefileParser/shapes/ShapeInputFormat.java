@@ -19,8 +19,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+
 public class ShapeInputFormat extends CombineFileInputFormat<ShapeKey, PrimitiveShape> {
-    public RecordReader<ShapeKey, PrimitiveShape> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
+  private static Log logger = LogFactory.getLog(ShapeInputFormat.class);
+
+  public RecordReader<ShapeKey, PrimitiveShape> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
         return new CombineShapeReader();
     }
 
@@ -44,6 +50,10 @@ public class ShapeInputFormat extends CombineFileInputFormat<ShapeKey, Primitive
         for(int i = 0; i < paths.length; ++i){
             job.getConfiguration().set("mapred.input.dir", paths[i]);
             splits.add(super.getSplits(job).get(0));
+        }
+        logger.info("The size of splits: " + splits.size());
+        for (InputSplit inputSplit : splits) {
+          logger.info(inputSplit.toString());
         }
         return splits;
     }
