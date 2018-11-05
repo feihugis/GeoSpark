@@ -30,6 +30,13 @@ public class ShpRecord implements Serializable {
         typeID = shapeTypeID;
     }
 
+  public ShpRecord(Object byteArray, int shapeTypeID) {
+    bytes = new BytesWritable();
+    byte[] byteArray_input = (byte[]) byteArray;
+    bytes.set(byteArray_input, 0, byteArray_input.length);
+    typeID = shapeTypeID;
+  }
+
     public BytesWritable getBytes() {
         return bytes;
     }

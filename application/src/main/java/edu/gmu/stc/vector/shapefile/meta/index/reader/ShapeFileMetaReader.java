@@ -108,6 +108,10 @@ public class ShapeFileMetaReader extends RecordReader<ShapeKey, ShpMeta> {
         return shpParser.getProgress();
     }
 
+    public void getBytes(long offset, byte[] holder) throws IOException {
+      shpInputStream.readFully(offset, holder);
+    }
+
     public void close() throws IOException {
         shpInputStream.close();
     }

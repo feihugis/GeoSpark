@@ -55,6 +55,8 @@ public class ShapeFileMeta extends Geometry implements Serializable {
   @Column(name = "filepath")
   private String filePath;
 
+  private byte[] shpContent = null;
+  private byte[] dbfContent = null;
   private Envelope envelope = null;
 
   public ShapeFileMeta() {
@@ -76,6 +78,24 @@ public class ShapeFileMeta extends Geometry implements Serializable {
     this.minY = minY;
     this.maxX = maxX;
     this.maxY = maxY;
+  }
+
+  public ShapeFileMeta(Long index, int typeID, long shp_offset, int shp_length, long dbf_offset,
+                       int dbf_length, String filePath, double minX, double minY, double maxX,
+                       double maxY, Object shp) {
+    super(new GeometryFactory());
+    this.index = index;
+    this.typeID = typeID;
+    this.shp_offset = shp_offset;
+    this.shp_length = shp_length;
+    this.dbf_offset = dbf_offset;
+    this.dbf_length = dbf_length;
+    this.filePath = filePath;
+    this.minX = minX;
+    this.minY = minY;
+    this.maxX = maxX;
+    this.maxY = maxY;
+    this.shpContent = (byte[]) shp;
   }
 
   public ShapeFileMeta(ShpMeta shpMeta, DbfMeta dbfMeta, String filePath) {
@@ -214,9 +234,11 @@ public class ShapeFileMeta extends Geometry implements Serializable {
   public String toString() {
     return String.format("Index: %d; TypeID: %d\n"
                          + "\t shp_offset: %d, shp_length: %d; \n "
-                         + "\t dbf_offset: %d, dbf_length: %d",
+                         + "\t dbf_offset: %d, dbf_length: %d \n"
+                         + "\t shpContent: %d, dbfContent: %d",
                          index, typeID, shp_offset,
-                         shp_length, dbf_offset, dbf_length);
+                         shp_length, dbf_offset, dbf_length,
+                         shpContent.length, dbfContent.length);
   }
 
   @Override
@@ -327,5 +349,21 @@ public class ShapeFileMeta extends Geometry implements Serializable {
       this.envelope = new Envelope(minX, maxX, minY, maxY);
     }
     return this.envelope;
+  }
+
+  public byte[] getShpContent() {
+    return this.shpContent;
+  }
+
+  public void setShpContent(byte[] shpContent) {
+    this.shpContent = shpContent;
+  }
+
+  public byte[] getDbfContent() {
+    return this.dbfContent;
+  }
+
+  public void setDbfContent(byte[] dbfContent) {
+    this.dbfContent = dbfContent;
   }
 }

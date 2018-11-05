@@ -73,6 +73,10 @@ public class DbfFileMetaReader extends org.apache.hadoop.mapreduce.RecordReader<
         return dbfParser.getProgress();
     }
 
+    public void getBytes(long offset, byte[] holder) throws IOException {
+      inputStream.readFully(offset, holder);
+    }
+
     public void close() throws IOException {
         inputStream.close();
     }

@@ -1,6 +1,6 @@
 package edu.gmu.stc.vector.rdd
 
-import com.vividsolutions.jts.geom.{Envelope, Geometry}
+import com.vividsolutions.jts.geom.{Envelope, Geometry, GeometryFactory}
 import com.vividsolutions.jts.index.SpatialIndex
 import edu.gmu.stc.config.ConfigParameter
 import edu.gmu.stc.hibernate.{DAOImpl, HibernateUtil, PhysicalNameStrategyImpl}
@@ -9,6 +9,7 @@ import edu.gmu.stc.vector.parition.PartitionUtil
 import edu.gmu.stc.vector.rdd.index.IndexOperator
 import edu.gmu.stc.vector.shapefile.meta.ShapeFileMeta
 import edu.gmu.stc.vector.shapefile.meta.index.ShapeFileMetaIndexInputFormat
+import edu.gmu.stc.vector.shapefile.reader.GeometryReaderUtil
 import org.apache.spark.{Partition, SerializableWritable, SparkContext, TaskContext}
 import org.apache.spark.rdd.RDD
 import org.apache.hadoop.conf.Configuration
@@ -19,7 +20,7 @@ import org.apache.log4j.Logger
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SQLContext
 import org.datasyslab.geospark.enums.{GridType, IndexType}
-import org.datasyslab.geospark.formatMapper.shapefileParser.shapes.ShapeKey
+import org.datasyslab.geospark.formatMapper.shapefileParser.shapes.{ShapeKey, ShpRecord}
 import org.datasyslab.geospark.spatialPartitioning.SpatialPartitioner
 import org.hibernate.Session
 
@@ -271,6 +272,8 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
       metadata.getFilePath
     ))
 
+    print("****** tupleShapeFileMetaRDD Size: " + tupleShapeFileMetaRDD.count())
+
     for (layer <- queried_layers) {
       val filtered_rdd = tupleShapeFileMetaRDD
         .filter(meta => meta._11.contains(layer))
@@ -280,6 +283,53 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
       val parquet_dir_path = filtered_rdd.first()._11 + ".index.parquet"
       val df = filtered_rdd.toDF("index","typeid", "shp_offset", "shp_length",
         "dbf_offset", "dbf_length", "minx", "miny", "maxx", "maxy", "filepath")
+
+      val fs = FileSystem.get(sc.hadoopConfiguration)
+
+      val pq_path = new Path(parquet_dir_path)
+      if (fs.exists(pq_path)) {
+        fs.delete(pq_path, true)
+      }
+
+      df.write.parquet(parquet_dir_path)
+    }
+  }
+
+  def saveShapeFileMetaToParquetWithRealData(sc: SparkContext): Unit = {
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    val queried_layers = sc.hadoopConfiguration.get(ConfigParameter.SHP_LAYER_NAMES)
+      .split(",")
+      .map(str => str.trim)
+
+    val executors_core_numbers:Int =
+      sc.hadoopConfiguration.get(ConfigParameter.EXECUTORS_CORE_NUMBER).toInt
+
+    val tupleShapeFileMetaRDD = this.shapeFileMetaRDD.map(metadata => (
+      metadata.getIndex,
+      metadata.getTypeID,
+      metadata.getShp_offset,
+      metadata.getShp_length,
+      metadata.getDbf_offset,
+      metadata.getDbf_length,
+      metadata.getMinX,
+      metadata.getMinY,
+      metadata.getMaxX,
+      metadata.getMaxY,
+      metadata.getFilePath,
+      metadata.getShpContent))
+
+    print("****** tupleShapeFileMetaRDD Size: " + tupleShapeFileMetaRDD.count())
+
+    for (layer <- queried_layers) {
+      val filtered_rdd = tupleShapeFileMetaRDD
+        .filter(meta => meta._11.contains(layer))
+        .sortBy(meta => meta._2) //sort by the shp offset
+        .repartition(executors_core_numbers)
+
+      val parquet_dir_path = filtered_rdd.first()._11 + ".index.parquet"
+      val df = filtered_rdd.toDF("index","typeid", "shp_offset", "shp_length",
+        "dbf_offset", "dbf_length", "minx", "miny", "maxx", "maxy", "filepath", "shp")
 
       val fs = FileSystem.get(sc.hadoopConfiguration)
 
@@ -310,6 +360,29 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
         row(8).asInstanceOf[java.lang.Double],
         row(9).asInstanceOf[java.lang.Double]))
         .sortBy(metadata => metadata.getShp_offset)
+  }
+
+  def getGeometryRDDFromParquet(sc: SparkContext, parquet_file: String, x_min: Float, x_max: Float,
+                                y_min: Float, y_max: Float): GeometryRDD = {
+    val sqlContext = new SQLContext(sc)
+    import sqlContext.implicits._
+    val df = sqlContext.read.parquet(parquet_file)
+    val shp_df = df.filter(!($"minx" < x_min or $"miny" < y_min
+                                     or $"maxx" > x_max or $"maxy" > y_max))
+                   .select("shp", "typeid")
+    val geometryRDD_data = shp_df.rdd
+      .map({case row => {
+        val geometryFactory = new GeometryFactory()
+
+        GeometryReaderUtil.readGeometry(row(0).asInstanceOf[Array[Byte]],
+                                        row(1).asInstanceOf[java.lang.Integer],
+                                        geometryFactory)
+
+      }})
+
+    val geometryRDD = new GeometryRDD
+    geometryRDD.setGeometryRDD(geometryRDD_data)
+    geometryRDD
   }
 
   def partition(partitioner: SpatialPartitioner): Unit = {
@@ -351,4 +424,6 @@ class ShapeFileMetaRDD (sc: SparkContext, @transient conf: Configuration)
   def getPartitioner: SpatialPartitioner = this.partitioner
 
   def getIndexedShapeFileMetaRDD: RDD[SpatialIndex] = this.indexedShapeFileMetaRDD
+
+  def cache: Unit = this.shapeFileMetaRDD.cache()
 }

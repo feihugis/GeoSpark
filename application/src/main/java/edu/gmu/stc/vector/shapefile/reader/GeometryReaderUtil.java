@@ -99,6 +99,13 @@ public class GeometryReaderUtil {
     return value.getShape(geometryFactory);
   }
 
+  public static Geometry readGeometry(byte[] content, int typeid, GeometryFactory geometryFactory)
+      throws IOException {
+    ShpRecord shpRecord = new ShpRecord(content, typeid);
+    PrimitiveShape value = new PrimitiveShape(shpRecord);
+    return value.getShape(geometryFactory);
+  }
+
   public static List<Geometry> readGeometriesWithAttributes(List<ShapeFileMeta> shapeFileMetaList)
       throws IOException {
     List<Geometry> geometries = new ArrayList<Geometry>();

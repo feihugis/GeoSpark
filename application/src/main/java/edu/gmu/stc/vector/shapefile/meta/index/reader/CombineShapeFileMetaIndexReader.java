@@ -7,6 +7,7 @@
 package edu.gmu.stc.vector.shapefile.meta.index.reader;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -62,6 +63,10 @@ public class CombineShapeFileMetaIndexReader extends RecordReader<ShapeKey, Shap
   /** flag of whether having next .dbf record */
   private boolean hasNextDbf = false;
 
+  private Configuration conf = null;
+
+  private int count = 0;
+
   /** dubug logger */
   final static Logger logger = Logger.getLogger(CombineShapeFileMetaIndexReader.class);
 
@@ -75,6 +80,7 @@ public class CombineShapeFileMetaIndexReader extends RecordReader<ShapeKey, Shap
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException
   {
+    conf = context.getConfiguration();
     CombineFileSplit fileSplit = (CombineFileSplit) split;
     Path[] paths = fileSplit.getPaths();
     for(int i = 0; i < paths.length; ++i){
@@ -92,7 +98,7 @@ public class CombineShapeFileMetaIndexReader extends RecordReader<ShapeKey, Shap
         // shape file exists, extract .shp with .shx
         // first read all indexes into memory
         Path filePath = shxSplit.getPath();
-        FileSystem fileSys = filePath.getFileSystem(context.getConfiguration());
+        FileSystem fileSys = filePath.getFileSystem(conf);
         FSDataInputStream shxInpuStream = fileSys.open(filePath);
         shxInpuStream.skip(24);
         int shxFileLength = shxInpuStream.readInt() * 2 - 100; // get length in bytes, exclude header
@@ -139,6 +145,11 @@ public class CombineShapeFileMetaIndexReader extends RecordReader<ShapeKey, Shap
         e.printStackTrace();
       }
     }
+
+    count++;
+    if (!hasNextShp) {
+      logger.info("****** Finish the index buiding with " + count + " geometries");
+    }
     return hasNextShp;
   }
 
@@ -150,14 +161,26 @@ public class CombineShapeFileMetaIndexReader extends RecordReader<ShapeKey, Shap
     ShpMeta shpMeta = shapeFileMetaReader.getCurrentValue();
     DbfMeta dbfMeta = dbfFileReader.getCurrentValue();
     String filePath = shpSplit.getPath().toString().replace("." + SHP_SUFFIX, "");
-    return new ShapeFileMeta(shpMeta, dbfMeta, filePath);
+    ShapeFileMeta shapeFileMeta = new ShapeFileMeta(shpMeta, dbfMeta, filePath);
+
+    byte[] shpContent = new byte[shapeFileMeta.getShp_length()];
+    shapeFileMetaReader.getBytes(shpMeta.getOffset(), shpContent);
+    shapeFileMeta.setShpContent(shpContent);
+
+    /*byte[] dbfContent = new byte[shapeFileMeta.getDbf_length()];
+    dbfFileReader.getBytes(dbfMeta.getOffset(), dbfContent);
+    shapeFileMeta.setDbfContent(dbfContent);*/
+
+    return shapeFileMeta;
   }
 
   public float getProgress() throws IOException, InterruptedException {
+    System.out.println(shapeFileMetaReader.getProgress());
     return shapeFileMetaReader.getProgress();
   }
 
   public void close() throws IOException {
     shapeFileMetaReader.close();
+    dbfFileReader.close();
   }
 }

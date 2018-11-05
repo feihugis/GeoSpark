@@ -2,15 +2,18 @@ package edu.gmu.stc.vector.rdd
 
 import com.vividsolutions.jts.geom.{Geometry, GeometryFactory, Polygon}
 import com.vividsolutions.jts.index.SpatialIndex
+import edu.gmu.stc.config.ConfigParameter
 import edu.gmu.stc.vector.operation.{FileConverter, OperationUtil}
+import edu.gmu.stc.vector.parition.PartitionUtil
 import edu.gmu.stc.vector.rdd.index.IndexOperator
 import edu.gmu.stc.vector.shapefile.meta.ShapeFileMeta
 import edu.gmu.stc.vector.shapefile.reader.GeometryReaderUtil
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
+import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
-import org.datasyslab.geospark.enums.IndexType
+import org.datasyslab.geospark.enums.{GridType, IndexType}
 import org.datasyslab.geospark.spatialPartitioning.SpatialPartitioner
 import org.wololo.geojson.{Feature, FeatureCollection}
 import org.wololo.jts2geojson.GeoJSONWriter
@@ -37,6 +40,19 @@ class GeometryRDD extends Logging{
     })
 
     this.partitioner = shapeFileMetaRDD.getPartitioner
+  }
+
+  def initializePartitioner(sc: SparkContext, gridType: GridType, partitionNum: Int): Unit = {
+    if (this.geometryRDD == null) {
+      throw new IllegalAccessError("Please generate the geometryRDD first")
+    }
+
+    val fraction = sc.hadoopConfiguration.get(ConfigParameter.RDD_SAMPLING_FRACTION).toDouble
+    val envelopes = this.geometryRDD
+      .sample(true, fraction)
+      .map(geometry => geometry.getEnvelopeInternal)
+      .collect().toList
+    this.partitioner = PartitionUtil.spatialPartitioning(gridType, partitionNum, envelopes.asJava)
   }
 
   def partition(partition: SpatialPartitioner): Unit = {
@@ -202,4 +218,6 @@ class GeometryRDD extends Logging{
     geometryRDD.setGeometryRDD(rdd)
     geometryRDD
   }
+
+  def getPartitioner: SpatialPartitioner = this.partitioner
 }
