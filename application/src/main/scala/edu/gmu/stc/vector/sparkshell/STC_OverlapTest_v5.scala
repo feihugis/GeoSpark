@@ -32,7 +32,7 @@ object STC_OverlapTest_v5 extends Logging{
     val t = System.currentTimeMillis()
 
     val sparkConf = new SparkConf()
-      .setAppName("%s_%s_%s_%s".format("STC_OverlapTest_v4", args(1), args(2), args(3)))
+      .setAppName("%s_%s_%s_%s".format("STC_OverlapTest_v5", args(1), args(2), args(3)))
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.kryo.registrator", classOf[VectorKryoRegistrator].getName)
 
