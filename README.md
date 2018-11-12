@@ -57,14 +57,15 @@ using GeoSpark.
  --driver-memory 12g \
  --executor-memory 10g \
  --executor-cores 24 \
- --class edu.gmu.stc.vector.sparkshell.STC_OverlapTest_v4 \
+ --class edu.gmu.stc.vector.sparkshell.STC_OverlapTest_v5 \
  --jars /home/fei/GeoSpark/application/target/geospark-application-1.1.0-SNAPSHOT.jar \
   /user/root/geospark/config/conf_ma_cluster.xml \
   120 \
   KDBTREE \
   QUADTREE \
   /user/root/test/test.geojson \
-  epsg:4326
+  epsg:4326 \
+  120
  ```
  
  3. Run GeoSpark Overlap:

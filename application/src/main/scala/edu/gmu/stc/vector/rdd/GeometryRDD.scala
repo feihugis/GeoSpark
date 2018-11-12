@@ -92,6 +92,7 @@ class GeometryRDD extends Logging{
 
   def uncache(blocking: Boolean = true): Unit = {
     this.geometryRDD.unpersist(blocking)
+    this.indexedGeometryRDD.unpersist(blocking)
   }
 
   def indexPartition(indexType: IndexType) = {

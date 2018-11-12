@@ -5,6 +5,7 @@ import edu.gmu.stc.vector.operation.OperationUtil.updateHadoopConfig
 import edu.gmu.stc.vector.rdd.{GeometryRDD, ShapeFileMetaRDD}
 import edu.gmu.stc.vector.serde.VectorKryoRegistrator
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.internal.Logging
 import org.apache.spark.{SparkConf, SparkContext}
 import org.datasyslab.geospark.enums.{GridType, IndexType}
@@ -64,6 +65,7 @@ object STC_OverlapTest_v5 extends Logging{
     geometryRDD1.initializePartitioner(sc, gridType, metaPartitionNum)
     geometryRDD1.partition(geometryRDD1.getPartitioner)
     geometryRDD1.indexPartition(indexType)
+    geometryRDD1.cache()
 
 
     val shapeFileMetaRDD2 = new ShapeFileMetaRDD(sc, hConf)
@@ -79,13 +81,29 @@ object STC_OverlapTest_v5 extends Logging{
 
     val startTime = System.currentTimeMillis()
     val geometryRDD = geometryRDD1.intersectV2(geometryRDD2, geometryPartitionNum)
+    geometryRDD.cache()
     //val geometryRDD = geometryRDD1.intersect(geometryRDD2)
     val endTime = System.currentTimeMillis()
     println("******** Intersection time: " + (endTime - startTime)/1000000)
 
     println("******** Number of intersected polygons: %d".format(geometryRDD.getGeometryRDD.count()))
 
+    val filePath = args(4)
+    val crs = args(5)
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+    if (fs.exists(new Path(filePath))) {
+      fs.delete(new Path(filePath), true)
+    }
+    if (filePath.endsWith("shp")) {
+      geometryRDD.saveAsShapefile(filePath, crs)
+    }  else {
+      geometryRDD.saveAsGeoJSON(filePath)
+    }
+
+
     println("************** Total time: " + (System.currentTimeMillis() - t)/1000000)
+
+
   }
 
 }
